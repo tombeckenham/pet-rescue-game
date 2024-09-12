@@ -34,3 +34,37 @@ body {
 		transform: translateY(-5px);
 	}
 }
+
+/* Add these new styles */
+.game-board {
+	background: linear-gradient(to bottom, #f0e6d2, #e6d8b5);
+	padding: 20px;
+	border-radius: 10px;
+}
+
+.gate {
+	background-color: #2b580c;
+	border: 4px solid #4a4a4a;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+	position: relative;
+}
+
+.gate::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 10px;
+	background-color: #8b4513;
+}
+
+.gate::after {
+	content: "";
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 10px;
+	background-color: #8b4513;
+}

@@ -8,6 +8,7 @@ import CatIcon from "./cat-icon";
 import DogIcon from "./dog-icon";
 import BadGuyIcon from "./bad-guy-icon";
 import MainCharacterIcon from "./main-character-icon";
+import Gate from "./gate";
 
 export default function GameBoard() {
 	const [score, setScore] = useState(0);
@@ -381,6 +382,7 @@ export default function GameBoard() {
 				width: "100vw",
 				height: "100vh",
 				touchAction: "none", // Prevent scrolling on touch devices
+				background: "linear-gradient(to bottom, #f0e6d2, #e6d8b5)", // Much lighter desert-like gradient
 			}}
 		>
 			<div className="absolute top-0 left-0 p-2 bg-white z-10">
@@ -398,14 +400,16 @@ export default function GameBoard() {
 			/>
 			{/* Gate */}
 			<div
-				className="absolute bg-yellow-500"
 				style={{
+					position: "absolute",
 					left: gateX,
 					top: wallY,
 					width: gateWidth,
-					height: 10,
+					height: 100,
 				}}
-			/>
+			>
+				<Gate width={gateWidth} height={100} />
+			</div>
 			{/* Main Character */}
 			<div
 				className="absolute"

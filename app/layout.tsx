@@ -7,10 +7,10 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
 	title: "Trump Pet Rescue",
-	description: "Rescue pets before they get eaten by illegal immigrants!",
+	description: "Rescue pets before they get eaten!",
 	openGraph: {
 		title: "Trump Pet Rescue",
-		description: "Rescue pets before they get eaten by illegal immigrants!",
+		description: "Rescue pets before they get eaten!",
 		images: [
 			{
 				url: "/hero-image.jpg",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 	twitter: {
 		card: "summary_large_image",
 		title: "Trump Pet Rescue",
-		description: "Rescue pets before they get eaten by illegal immigrants!",
+		description: "Rescue pets before they get eaten!",
 		images: ["/hero-image.jpg"],
 	},
 	icons: null, // This line removes the default favicon

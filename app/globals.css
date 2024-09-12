@@ -68,3 +68,152 @@ body {
 	height: 10px;
 	background-color: #8b4513;
 }
+
+.game-container {
+	position: relative;
+	width: 100%;
+	height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.opening-screen,
+.closing-screen {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	background-color: rgba(0, 0, 0, 0.8);
+	padding: 2rem;
+	border-radius: 1rem;
+}
+
+.hero-image,
+.game-over-image {
+	max-width: 100%;
+	height: auto;
+	margin-bottom: 1rem;
+	border-radius: 0.5rem;
+}
+
+.opening-screen h1,
+.closing-screen h1 {
+	font-size: 2.5rem;
+	margin-bottom: 1rem;
+	color: #ffffff;
+}
+
+.opening-screen button,
+.closing-screen button {
+	padding: 0.75rem 1.5rem;
+	font-size: 1.25rem;
+	background-color: #4caf50;
+	color: white;
+	border: none;
+	border-radius: 0.25rem;
+	cursor: pointer;
+	transition: background-color 0.3s;
+}
+
+.opening-screen button:hover,
+.closing-screen button:hover {
+	background-color: #45a049;
+}
+
+.closing-screen p {
+	font-size: 1.5rem;
+	margin-bottom: 1rem;
+	color: #ffffff;
+}
+
+.button-container {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	margin-top: 1rem;
+}
+
+.primary-button,
+.secondary-button {
+	padding: 0.75rem 1.5rem;
+	font-size: 1.25rem;
+	border: none;
+	border-radius: 0.25rem;
+	cursor: pointer;
+	transition: background-color 0.3s;
+}
+
+.primary-button {
+	background-color: #4caf50;
+	color: white;
+}
+
+.primary-button:hover {
+	background-color: #45a049;
+}
+
+.secondary-button {
+	background-color: #f0f0f0;
+	color: #333;
+}
+
+.secondary-button:hover {
+	background-color: #e0e0e0;
+}
+
+.share-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+	max-width: 400px;
+	margin-bottom: 1rem;
+}
+
+.share-text {
+	width: 100%;
+	height: 80px;
+	padding: 0.5rem;
+	margin-bottom: 0.5rem;
+	border: 1px solid #ccc;
+	border-radius: 0.25rem;
+	resize: none;
+	font-size: 0.9rem;
+}
+
+.button-group {
+	display: flex;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+.copy-button,
+.share-button {
+	padding: 0.5rem 1rem;
+	font-size: 1rem;
+	border: none;
+	border-radius: 0.25rem;
+	cursor: pointer;
+	transition: background-color 0.3s;
+	margin: 0.25rem;
+}
+
+.copy-button {
+	background-color: #f0f0f0;
+	color: #333;
+}
+
+.copy-button:hover {
+	background-color: #e0e0e0;
+}
+
+.share-button {
+	background-color: #1da1f2;
+	color: white;
+}
+
+.share-button:hover {
+	background-color: #1a91da;
+}

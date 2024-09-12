@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Character, Pet, BadGuy, PetType } from "./game-entities";
-import OpeningScreen from "./opening-screen";
-import GameOverScreen from "./game-over-screen";
+import Gate from "./gate";
 import CatIcon from "./cat-icon";
 import DogIcon from "./dog-icon";
 import BadGuyIcon from "./bad-guy-icon";
 import MainCharacterIcon from "./main-character-icon";
-import Gate from "./gate";
+import OpeningScreen from "./opening-screen";
+import ClosingScreen from "./closing-screen";
 
 export default function GameBoard() {
 	const [score, setScore] = useState(0);
@@ -371,7 +371,7 @@ export default function GameBoard() {
 	}
 
 	if (gameState === "gameOver") {
-		return <GameOverScreen score={score} onRestart={restartGame} />;
+		return <ClosingScreen score={score} onRestartGame={restartGame} />;
 	}
 
 	return (

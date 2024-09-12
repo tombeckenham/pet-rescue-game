@@ -12,10 +12,7 @@ import ClosingScreen from "./closing-screen";
 
 export default function GameBoard() {
 	const [score, setScore] = useState(0);
-	const [character, setCharacter] = useState<Character>({
-		x: window.innerWidth / 2,
-		y: window.innerHeight / 2 - 30,
-	});
+	const [character, setCharacter] = useState<Character>({ x: 0, y: 0 });
 	const [gameState, setGameState] = useState<
 		"opening" | "playing" | "gameOver"
 	>("opening");
@@ -30,19 +27,42 @@ export default function GameBoard() {
 	const lastTimeRef = useRef<number>(0);
 	const animationFrameRef = useRef<number>();
 
-	const [gameWidth, setGameWidth] = useState(window.innerWidth);
-	const [gameHeight, setGameHeight] = useState(window.innerHeight);
-	const [wallY, setWallY] = useState(window.innerHeight * 0.75);
-	const [gateWidth, setGateWidth] = useState(
-		Math.min(100, window.innerWidth * 0.1)
-	);
-	const [gateX, setGateX] = useState(
-		(window.innerWidth - Math.min(100, window.innerWidth * 0.1)) / 2
-	);
+	const [gameWidth, setGameWidth] = useState(0);
+	const [gameHeight, setGameHeight] = useState(0);
+	const [wallY, setWallY] = useState(0);
+	const [gateWidth, setGateWidth] = useState(0);
+	const [gateX, setGateX] = useState(0);
 
 	const [characterDirection, setCharacterDirection] = useState<
 		"left" | "right"
 	>("right");
+
+	useEffect(() => {
+		// Initialize state values that depend on window
+		setGameWidth(window.innerWidth);
+		setGameHeight(window.innerHeight);
+		setWallY(window.innerHeight * 0.75);
+		setGateWidth(Math.min(100, window.innerWidth * 0.1));
+		setGateX((window.innerWidth - Math.min(100, window.innerWidth * 0.1)) / 2);
+		setCharacter({
+			x: window.innerWidth / 2,
+			y: window.innerHeight / 2 - 30,
+		});
+
+		const handleResize = () => {
+			setGameWidth(window.innerWidth);
+			setGameHeight(window.innerHeight);
+			setWallY(window.innerHeight * 0.75);
+			setGateWidth(Math.min(100, window.innerWidth * 0.1));
+			setGateX(
+				(window.innerWidth - Math.min(100, window.innerWidth * 0.1)) / 2
+			);
+		};
+
+		handleResize();
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
 
 	const spawnPet = useCallback(
 		(prevGameEntities: { pets: Pet[]; badGuys: BadGuy[] }) => {
@@ -148,22 +168,6 @@ export default function GameBoard() {
 			clearInterval(badGuyInterval);
 		};
 	}, [gameState, spawnPet, spawnBadGuy]);
-
-	useEffect(() => {
-		const handleResize = () => {
-			setGameWidth(window.innerWidth);
-			setGameHeight(window.innerHeight);
-			setWallY(window.innerHeight * 0.75);
-			setGateWidth(Math.min(100, window.innerWidth * 0.1));
-			setGateX(
-				(window.innerWidth - Math.min(100, window.innerWidth * 0.1)) / 2
-			);
-		};
-
-		handleResize();
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, []);
 
 	// Update character position logic
 	useEffect(() => {

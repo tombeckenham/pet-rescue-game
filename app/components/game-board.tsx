@@ -3,17 +3,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Character, Pet, BadGuy } from "./game-entities";
 
-const GAME_WIDTH = 1000;
-const GAME_HEIGHT = 600;
-const WALL_Y = GAME_HEIGHT / 2;
-const GATE_WIDTH = 100;
-const GATE_X = (GAME_WIDTH - GATE_WIDTH) / 2;
+const DESKTOP_WIDTH = 1000;
+const DESKTOP_HEIGHT = 600;
+const MOBILE_WIDTH = 360;
+const MOBILE_HEIGHT = 640;
 
 export default function GameBoard() {
+	const [isMobile, setIsMobile] = useState(false);
+	const [gameWidth, setGameWidth] = useState(DESKTOP_WIDTH);
+	const [gameHeight, setGameHeight] = useState(DESKTOP_HEIGHT);
+	const [wallY, setWallY] = useState(DESKTOP_HEIGHT / 2);
+	const [gateWidth, setGateWidth] = useState(100);
+	const [gateX, setGateX] = useState((DESKTOP_WIDTH - 100) / 2);
+
 	const [score, setScore] = useState(0);
 	const [character, setCharacter] = useState<Character>({
-		x: GAME_WIDTH / 2,
-		y: WALL_Y - 30,
+		x: DESKTOP_WIDTH / 2,
+		y: DESKTOP_HEIGHT / 2 - 30,
 	});
 	const [gameState, setGameState] = useState<{
 		pets: Pet[];
@@ -28,14 +34,14 @@ export default function GameBoard() {
 
 	const spawnPet = useCallback(
 		(prevGameState: { pets: Pet[]; badGuys: BadGuy[] }) => {
-			const safeDistance = Math.min(GAME_WIDTH, GAME_HEIGHT) / 4;
+			const safeDistance = Math.min(gameWidth, gameHeight) / 4;
 			let x: number, y: number;
 			let isSafe = false;
 			let attempts = 0;
 			const maxAttempts = 5;
 
 			do {
-				x = Math.random() * GAME_WIDTH;
+				x = Math.random() * gameWidth;
 				y = 0; // Always start from the top
 
 				// Check distance from all bad guys
@@ -54,8 +60,8 @@ export default function GameBoard() {
 			}
 
 			const speed = 60; // Speed in pixels per second
-			const targetX = GATE_X + GATE_WIDTH / 2;
-			const targetY = WALL_Y;
+			const targetX = gateX + gateWidth / 2;
+			const targetY = wallY;
 			const angle = Math.atan2(targetY - y, targetX - x);
 
 			return {
@@ -65,14 +71,14 @@ export default function GameBoard() {
 				vy: Math.sin(angle) * speed,
 			};
 		},
-		[]
+		[gameWidth, gameHeight, gateX, gateWidth, wallY]
 	);
 
 	const spawnBadGuy = useCallback(() => {
-		const x = Math.random() * GAME_WIDTH;
-		const y = GAME_HEIGHT;
-		const targetX = GATE_X + GATE_WIDTH / 2;
-		const targetY = WALL_Y;
+		const x = Math.random() * gameWidth;
+		const y = gameHeight;
+		const targetX = gateX + gateWidth / 2;
+		const targetY = wallY;
 		const angle = Math.atan2(targetY - y, targetX - x);
 		const speed = 120; // Speed in pixels per second
 		return {
@@ -81,7 +87,7 @@ export default function GameBoard() {
 			vx: Math.cos(angle) * speed,
 			vy: Math.sin(angle) * speed,
 		};
-	}, []);
+	}, [gameWidth, gameHeight, gateX, gateWidth, wallY]);
 
 	useEffect(() => {
 		const petInterval = setInterval(() => {
@@ -106,14 +112,52 @@ export default function GameBoard() {
 	}, [spawnPet, spawnBadGuy]);
 
 	useEffect(() => {
+		const handleResize = () => {
+			const mobile = window.innerWidth < 768;
+			setIsMobile(mobile);
+
+			if (mobile) {
+				setGameWidth(MOBILE_WIDTH);
+				setGameHeight(MOBILE_HEIGHT);
+				setWallY(MOBILE_HEIGHT * 0.75);
+				setGateWidth(80);
+				setGateX((MOBILE_WIDTH - 80) / 2);
+			} else {
+				setGameWidth(DESKTOP_WIDTH);
+				setGameHeight(DESKTOP_HEIGHT);
+				setWallY(DESKTOP_HEIGHT / 2);
+				setGateWidth(100);
+				setGateX((DESKTOP_WIDTH - 100) / 2);
+			}
+		};
+
+		handleResize();
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	// Update character position logic
+	useEffect(() => {
 		const handleMouseMove = (e: MouseEvent) => {
 			if (gameAreaRef.current) {
 				const rect = gameAreaRef.current.getBoundingClientRect();
 				const x = e.clientX - rect.left;
 				const y = e.clientY - rect.top;
 				setCharacter({
-					x: Math.max(0, Math.min(GAME_WIDTH, x)),
-					y: Math.max(0, Math.min(WALL_Y - 20, y)),
+					x: Math.max(0, Math.min(gameWidth, x)),
+					y: Math.max(0, Math.min(wallY - 20, y)),
+				});
+			}
+		};
+
+		const handleTouchMove = (e: TouchEvent) => {
+			if (gameAreaRef.current && e.touches[0]) {
+				const rect = gameAreaRef.current.getBoundingClientRect();
+				const x = e.touches[0].clientX - rect.left;
+				const y = e.touches[0].clientY - rect.top;
+				setCharacter({
+					x: Math.max(0, Math.min(gameWidth, x)),
+					y: Math.max(0, Math.min(wallY - 20, y)),
 				});
 			}
 		};
@@ -121,14 +165,16 @@ export default function GameBoard() {
 		const gameArea = gameAreaRef.current;
 		if (gameArea) {
 			gameArea.addEventListener("mousemove", handleMouseMove);
+			gameArea.addEventListener("touchmove", handleTouchMove);
 		}
 
 		return () => {
 			if (gameArea) {
 				gameArea.removeEventListener("mousemove", handleMouseMove);
+				gameArea.removeEventListener("touchmove", handleTouchMove);
 			}
 		};
-	}, []);
+	}, [gameWidth, wallY]);
 
 	const gameLoop = useCallback(
 		(currentTime: number) => {
@@ -147,20 +193,20 @@ export default function GameBoard() {
 					const newY = pet.y + pet.vy * deltaTime;
 
 					// If the pet reaches the gate, keep it there
-					if (newY >= WALL_Y && newX >= GATE_X && newX <= GATE_X + GATE_WIDTH) {
-						return { ...pet, x: newX, y: WALL_Y };
+					if (newY >= wallY && newX >= gateX && newX <= gateX + gateWidth) {
+						return { ...pet, x: newX, y: wallY };
 					}
 
 					// Only adjust direction if the pet is near a wall
 					const nearWall =
 						newX <= 10 ||
-						newX >= GAME_WIDTH - 10 ||
+						newX >= gameWidth - 10 ||
 						newY <= 10 ||
-						newY >= GAME_HEIGHT - 10;
+						newY >= gameHeight - 10;
 
 					if (nearWall) {
-						const targetX = GATE_X + GATE_WIDTH / 2;
-						const targetY = WALL_Y;
+						const targetX = gateX + gateWidth / 2;
+						const targetY = wallY;
 						const angle = Math.atan2(targetY - newY, targetX - newX);
 						const speed = Math.sqrt(pet.vx ** 2 + pet.vy ** 2);
 						return {
@@ -185,12 +231,12 @@ export default function GameBoard() {
 						// If the bad guy reaches the top of the game board or goes beyond the sides when above the wall, mark it for removal
 						if (
 							newY <= 0 ||
-							(newY <= WALL_Y && (newX < 0 || newX > GAME_WIDTH))
+							(newY <= wallY && (newX < 0 || newX > gameWidth))
 						) {
 							return { ...badGuy, remove: true };
 						}
 
-						if (newY <= WALL_Y) {
+						if (newY <= wallY) {
 							// We're above or at the wall
 							// We can never hit the wall as the bad guys are always moving towards the gate
 
@@ -255,7 +301,7 @@ export default function GameBoard() {
 
 			animationFrameRef.current = requestAnimationFrame(gameLoop);
 		},
-		[score, character]
+		[score, character, gameWidth, gameHeight, wallY, gateX, gateWidth]
 	);
 
 	useEffect(() => {
@@ -270,11 +316,12 @@ export default function GameBoard() {
 	return (
 		<div
 			ref={gameAreaRef}
-			className="relative cursor-none"
+			className="relative cursor-none mx-auto"
 			style={{
-				width: GAME_WIDTH,
-				height: GAME_HEIGHT,
+				width: gameWidth,
+				height: gameHeight,
 				border: "2px solid black",
+				touchAction: "none", // Prevent scrolling on touch devices
 			}}
 		>
 			<div className="absolute top-0 left-0 p-2 bg-white">Score: {score}</div>
@@ -283,8 +330,8 @@ export default function GameBoard() {
 				className="absolute bg-gray-800"
 				style={{
 					left: 0,
-					top: WALL_Y,
-					width: GAME_WIDTH,
+					top: wallY,
+					width: gameWidth,
 					height: 10,
 				}}
 			/>
@@ -292,9 +339,9 @@ export default function GameBoard() {
 			<div
 				className="absolute bg-yellow-500"
 				style={{
-					left: GATE_X,
-					top: WALL_Y,
-					width: GATE_WIDTH,
+					left: gateX,
+					top: wallY,
+					width: gateWidth,
 					height: 10,
 				}}
 			/>

@@ -2,26 +2,19 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Character, Pet, BadGuy } from "./game-entities";
-
-const DESKTOP_WIDTH = 1000;
-const DESKTOP_HEIGHT = 600;
-const MOBILE_WIDTH = 360;
-const MOBILE_HEIGHT = 640;
+import OpeningScreen from "./opening-screen";
+import GameOverScreen from "./game-over-screen";
 
 export default function GameBoard() {
-	const [isMobile, setIsMobile] = useState(false);
-	const [gameWidth, setGameWidth] = useState(DESKTOP_WIDTH);
-	const [gameHeight, setGameHeight] = useState(DESKTOP_HEIGHT);
-	const [wallY, setWallY] = useState(DESKTOP_HEIGHT / 2);
-	const [gateWidth, setGateWidth] = useState(100);
-	const [gateX, setGateX] = useState((DESKTOP_WIDTH - 100) / 2);
-
 	const [score, setScore] = useState(0);
 	const [character, setCharacter] = useState<Character>({
-		x: DESKTOP_WIDTH / 2,
-		y: DESKTOP_HEIGHT / 2 - 30,
+		x: window.innerWidth / 2,
+		y: window.innerHeight / 2 - 30,
 	});
-	const [gameState, setGameState] = useState<{
+	const [gameState, setGameState] = useState<
+		"opening" | "playing" | "gameOver"
+	>("opening");
+	const [gameEntities, setGameEntities] = useState<{
 		pets: Pet[];
 		badGuys: BadGuy[];
 	}>({
@@ -32,8 +25,18 @@ export default function GameBoard() {
 	const lastTimeRef = useRef<number>(0);
 	const animationFrameRef = useRef<number>();
 
+	const [gameWidth, setGameWidth] = useState(window.innerWidth);
+	const [gameHeight, setGameHeight] = useState(window.innerHeight);
+	const [wallY, setWallY] = useState(window.innerHeight * 0.75);
+	const [gateWidth, setGateWidth] = useState(
+		Math.min(100, window.innerWidth * 0.1)
+	);
+	const [gateX, setGateX] = useState(
+		(window.innerWidth - Math.min(100, window.innerWidth * 0.1)) / 2
+	);
+
 	const spawnPet = useCallback(
-		(prevGameState: { pets: Pet[]; badGuys: BadGuy[] }) => {
+		(prevGameEntities: { pets: Pet[]; badGuys: BadGuy[] }) => {
 			const safeDistance = Math.min(gameWidth, gameHeight) / 4;
 			let x: number, y: number;
 			let isSafe = false;
@@ -45,7 +48,7 @@ export default function GameBoard() {
 				y = 0; // Always start from the top
 
 				// Check distance from all bad guys
-				isSafe = prevGameState.badGuys.every((badGuy) => {
+				isSafe = prevGameEntities.badGuys.every((badGuy) => {
 					const distance = Math.hypot(x - badGuy.x, y - badGuy.y);
 					return distance > safeDistance;
 				});
@@ -89,9 +92,27 @@ export default function GameBoard() {
 		};
 	}, [gameWidth, gameHeight, gateX, gateWidth, wallY]);
 
+	const startGame = useCallback(() => {
+		setGameState("playing");
+		setScore(0);
+		setGameEntities({ pets: [], badGuys: [] });
+		lastTimeRef.current = 0;
+		// Reset character position
+		setCharacter({
+			x: window.innerWidth / 2,
+			y: window.innerHeight * 0.75 - 30,
+		});
+	}, []);
+
+	const restartGame = useCallback(() => {
+		startGame();
+	}, [startGame]);
+
 	useEffect(() => {
+		if (gameState !== "playing") return;
+
 		const petInterval = setInterval(() => {
-			setGameState((prev) => {
+			setGameEntities((prev) => {
 				const newPet = spawnPet(prev);
 				return {
 					...prev,
@@ -99,36 +120,29 @@ export default function GameBoard() {
 				};
 			});
 		}, 2000);
+
 		const badGuyInterval = setInterval(() => {
-			setGameState((prev) => ({
+			setGameEntities((prev) => ({
 				...prev,
 				badGuys: [...prev.badGuys, spawnBadGuy()],
 			}));
 		}, 3000);
+
 		return () => {
 			clearInterval(petInterval);
 			clearInterval(badGuyInterval);
 		};
-	}, [spawnPet, spawnBadGuy]);
+	}, [gameState, spawnPet, spawnBadGuy]);
 
 	useEffect(() => {
 		const handleResize = () => {
-			const mobile = window.innerWidth < 768;
-			setIsMobile(mobile);
-
-			if (mobile) {
-				setGameWidth(MOBILE_WIDTH);
-				setGameHeight(MOBILE_HEIGHT);
-				setWallY(MOBILE_HEIGHT * 0.75);
-				setGateWidth(80);
-				setGateX((MOBILE_WIDTH - 80) / 2);
-			} else {
-				setGameWidth(DESKTOP_WIDTH);
-				setGameHeight(DESKTOP_HEIGHT);
-				setWallY(DESKTOP_HEIGHT / 2);
-				setGateWidth(100);
-				setGateX((DESKTOP_WIDTH - 100) / 2);
-			}
+			setGameWidth(window.innerWidth);
+			setGameHeight(window.innerHeight);
+			setWallY(window.innerHeight * 0.75);
+			setGateWidth(Math.min(100, window.innerWidth * 0.1));
+			setGateX(
+				(window.innerWidth - Math.min(100, window.innerWidth * 0.1)) / 2
+			);
 		};
 
 		handleResize();
@@ -138,6 +152,8 @@ export default function GameBoard() {
 
 	// Update character position logic
 	useEffect(() => {
+		if (gameState !== "playing") return;
+
 		const handleMouseMove = (e: MouseEvent) => {
 			if (gameAreaRef.current) {
 				const rect = gameAreaRef.current.getBoundingClientRect();
@@ -162,19 +178,16 @@ export default function GameBoard() {
 			}
 		};
 
-		const gameArea = gameAreaRef.current;
-		if (gameArea) {
-			gameArea.addEventListener("mousemove", handleMouseMove);
-			gameArea.addEventListener("touchmove", handleTouchMove);
-		}
+		document.addEventListener("mousemove", handleMouseMove);
+		document.addEventListener("touchmove", handleTouchMove, {
+			passive: false,
+		});
 
 		return () => {
-			if (gameArea) {
-				gameArea.removeEventListener("mousemove", handleMouseMove);
-				gameArea.removeEventListener("touchmove", handleTouchMove);
-			}
+			document.removeEventListener("mousemove", handleMouseMove);
+			document.removeEventListener("touchmove", handleTouchMove);
 		};
-	}, [gameWidth, wallY]);
+	}, [gameState, gameWidth, wallY]);
 
 	const gameLoop = useCallback(
 		(currentTime: number) => {
@@ -184,7 +197,7 @@ export default function GameBoard() {
 			const deltaTime = (currentTime - lastTimeRef.current) / 1000; // Convert to seconds
 			lastTimeRef.current = currentTime;
 
-			setGameState((prevState) => {
+			setGameEntities((prevState) => {
 				const { pets, badGuys } = prevState;
 
 				// Update pets
@@ -288,8 +301,7 @@ export default function GameBoard() {
 
 				if (caughtPets.length > 0) {
 					// A pet was caught, game over
-					alert(`Game Over! Your score: ${score}`);
-					setScore(0);
+					setGameState("gameOver");
 					return { pets: [], badGuys: [] };
 				}
 
@@ -305,33 +317,45 @@ export default function GameBoard() {
 	);
 
 	useEffect(() => {
+		if (gameState !== "playing") return;
+
 		animationFrameRef.current = requestAnimationFrame(gameLoop);
+
 		return () => {
 			if (animationFrameRef.current) {
 				cancelAnimationFrame(animationFrameRef.current);
 			}
 		};
-	}, [gameLoop]);
+	}, [gameState, gameLoop]);
+
+	if (gameState === "opening") {
+		return <OpeningScreen onStartGame={startGame} />;
+	}
+
+	if (gameState === "gameOver") {
+		return <GameOverScreen score={score} onRestart={restartGame} />;
+	}
 
 	return (
 		<div
 			ref={gameAreaRef}
-			className="relative cursor-none mx-auto"
+			className="fixed inset-0"
 			style={{
-				width: gameWidth,
-				height: gameHeight,
-				border: "2px solid black",
+				width: "100vw",
+				height: "100vh",
 				touchAction: "none", // Prevent scrolling on touch devices
 			}}
 		>
-			<div className="absolute top-0 left-0 p-2 bg-white">Score: {score}</div>
+			<div className="absolute top-0 left-0 p-2 bg-white z-10">
+				Score: {score}
+			</div>
 			{/* Wall */}
 			<div
 				className="absolute bg-gray-800"
 				style={{
 					left: 0,
 					top: wallY,
-					width: gameWidth,
+					width: "100%",
 					height: 10,
 				}}
 			/>
@@ -356,7 +380,7 @@ export default function GameBoard() {
 				}}
 			/>
 			{/* Pets */}
-			{gameState.pets.map((pet, index) => (
+			{gameEntities.pets.map((pet, index) => (
 				<div
 					key={`pet-${index}`}
 					className="absolute bg-green-500 rounded-full"
@@ -364,7 +388,7 @@ export default function GameBoard() {
 				/>
 			))}
 			{/* Bad Guys */}
-			{gameState.badGuys.map((badGuy, index) => (
+			{gameEntities.badGuys.map((badGuy, index) => (
 				<div
 					key={`badguy-${index}`}
 					className="absolute bg-red-500 rounded-full"

@@ -8,6 +8,8 @@ export interface Pet {
 	y: number;
 	vx: number;
 	vy: number;
+	type: PetType;
+	direction: "left" | "right";
 }
 
 export interface BadGuy {
@@ -15,5 +17,8 @@ export interface BadGuy {
 	y: number;
 	vx: number;
 	vy: number;
+	direction: "left" | "right";
 	remove?: boolean;
 }
+
+export type PetType = "cat" | "dog";

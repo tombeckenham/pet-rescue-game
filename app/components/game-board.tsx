@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Character, Pet, BadGuy } from "./game-entities";
+import { Character, Pet, BadGuy, PetType } from "./game-entities";
 import OpeningScreen from "./opening-screen";
 import GameOverScreen from "./game-over-screen";
+import CatIcon from "./cat-icon";
+import DogIcon from "./dog-icon";
+import BadGuyIcon from "./bad-guy-icon";
+import MainCharacterIcon from "./main-character-icon";
 
 export default function GameBoard() {
 	const [score, setScore] = useState(0);
@@ -34,6 +38,10 @@ export default function GameBoard() {
 	const [gateX, setGateX] = useState(
 		(window.innerWidth - Math.min(100, window.innerWidth * 0.1)) / 2
 	);
+
+	const [characterDirection, setCharacterDirection] = useState<
+		"left" | "right"
+	>("right");
 
 	const spawnPet = useCallback(
 		(prevGameEntities: { pets: Pet[]; badGuys: BadGuy[] }) => {
@@ -67,11 +75,17 @@ export default function GameBoard() {
 			const targetY = wallY;
 			const angle = Math.atan2(targetY - y, targetX - x);
 
+			const petType: PetType = Math.random() < 0.5 ? "cat" : "dog";
+			const direction: "left" | "right" =
+				Math.cos(angle) > 0 ? "right" : "left";
+
 			return {
 				x,
 				y,
 				vx: Math.cos(angle) * speed,
 				vy: Math.sin(angle) * speed,
+				type: petType,
+				direction,
 			};
 		},
 		[gameWidth, gameHeight, gateX, gateWidth, wallY]
@@ -84,11 +98,13 @@ export default function GameBoard() {
 		const targetY = wallY;
 		const angle = Math.atan2(targetY - y, targetX - x);
 		const speed = 120; // Speed in pixels per second
+		const direction: "left" | "right" = Math.cos(angle) > 0 ? "right" : "left";
 		return {
 			x,
 			y,
 			vx: Math.cos(angle) * speed,
 			vy: Math.sin(angle) * speed,
+			direction,
 		};
 	}, [gameWidth, gameHeight, gateX, gateWidth, wallY]);
 
@@ -110,21 +126,19 @@ export default function GameBoard() {
 
 	useEffect(() => {
 		if (gameState !== "playing") return;
-
 		const petInterval = setInterval(() => {
 			setGameEntities((prev) => {
 				const newPet = spawnPet(prev);
 				return {
 					...prev,
-					pets: [...prev.pets, newPet],
+					pets: [...prev.pets, newPet as Pet],
 				};
 			});
 		}, 2000);
-
 		const badGuyInterval = setInterval(() => {
 			setGameEntities((prev) => ({
 				...prev,
-				badGuys: [...prev.badGuys, spawnBadGuy()],
+				badGuys: [...prev.badGuys, spawnBadGuy() as BadGuy],
 			}));
 		}, 3000);
 
@@ -159,9 +173,16 @@ export default function GameBoard() {
 				const rect = gameAreaRef.current.getBoundingClientRect();
 				const x = e.clientX - rect.left;
 				const y = e.clientY - rect.top;
-				setCharacter({
-					x: Math.max(0, Math.min(gameWidth, x)),
-					y: Math.max(0, Math.min(wallY - 20, y)),
+				setCharacter((prev) => {
+					const newX = Math.max(0, Math.min(gameWidth, x));
+					if (Math.abs(newX - prev.x) > 1) {
+						// Only change direction if there's significant movement
+						setCharacterDirection(newX > prev.x ? "right" : "left");
+					}
+					return {
+						x: newX,
+						y: Math.max(0, Math.min(wallY - 20, y)),
+					};
 				});
 			}
 		};
@@ -171,9 +192,16 @@ export default function GameBoard() {
 				const rect = gameAreaRef.current.getBoundingClientRect();
 				const x = e.touches[0].clientX - rect.left;
 				const y = e.touches[0].clientY - rect.top;
-				setCharacter({
-					x: Math.max(0, Math.min(gameWidth, x)),
-					y: Math.max(0, Math.min(wallY - 20, y)),
+				setCharacter((prev) => {
+					const newX = Math.max(0, Math.min(gameWidth, x));
+					if (Math.abs(newX - prev.x) > 1) {
+						// Only change direction if there's significant movement
+						setCharacterDirection(newX > prev.x ? "right" : "left");
+					}
+					return {
+						x: newX,
+						y: Math.max(0, Math.min(wallY - 20, y)),
+					};
 				});
 			}
 		};
@@ -205,9 +233,12 @@ export default function GameBoard() {
 					const newX = pet.x + pet.vx * deltaTime;
 					const newY = pet.y + pet.vy * deltaTime;
 
+					// Update direction based on horizontal velocity
+					const direction: "left" | "right" = pet.vx > 0 ? "right" : "left";
+
 					// If the pet reaches the gate, keep it there
 					if (newY >= wallY && newX >= gateX && newX <= gateX + gateWidth) {
-						return { ...pet, x: newX, y: wallY };
+						return { ...pet, x: newX, y: wallY, direction };
 					}
 
 					// Only adjust direction if the pet is near a wall
@@ -228,11 +259,12 @@ export default function GameBoard() {
 							y: newY,
 							vx: Math.cos(angle) * speed,
 							vy: Math.sin(angle) * speed,
+							direction,
 						};
 					}
 
 					// If not near a wall, continue with current velocity
-					return { ...pet, x: newX, y: newY };
+					return { ...pet, x: newX, y: newY, direction };
 				});
 
 				// Update bad guys
@@ -240,6 +272,10 @@ export default function GameBoard() {
 					.map((badGuy) => {
 						const newX = badGuy.x + badGuy.vx * deltaTime;
 						const newY = badGuy.y + badGuy.vy * deltaTime;
+
+						// Update direction based on horizontal velocity
+						const direction: "left" | "right" =
+							badGuy.vx > 0 ? "right" : "left";
 
 						// If the bad guy reaches the top of the game board or goes beyond the sides when above the wall, mark it for removal
 						if (
@@ -276,11 +312,12 @@ export default function GameBoard() {
 									y: newY,
 									vx: Math.cos(angle) * speed,
 									vy: Math.sin(angle) * speed,
+									direction,
 								};
 							}
 						}
 
-						return { ...badGuy, x: newX, y: newY };
+						return { ...badGuy, x: newX, y: newY, direction };
 					})
 					.filter((badGuy) => !badGuy.remove); // Remove bad guys that have been marked for removal
 
@@ -313,7 +350,7 @@ export default function GameBoard() {
 
 			animationFrameRef.current = requestAnimationFrame(gameLoop);
 		},
-		[score, character, gameWidth, gameHeight, wallY, gateX, gateWidth]
+		[character, gameWidth, gameHeight, wallY, gateX, gateWidth]
 	);
 
 	useEffect(() => {
@@ -369,36 +406,51 @@ export default function GameBoard() {
 					height: 10,
 				}}
 			/>
-			{/* Character */}
+			{/* Main Character */}
 			<div
-				className="absolute bg-blue-500 rounded-full"
+				className="absolute"
 				style={{
-					left: character.x - 10,
-					top: character.y - 10,
-					width: 20,
-					height: 20,
+					left: character.x - 30,
+					top: character.y - 30,
+					width: 60,
+					height: 60,
 				}}
-			/>
+			>
+				<MainCharacterIcon direction={characterDirection} />
+			</div>
 			{/* Pets */}
 			{gameEntities.pets.map((pet, index) => (
 				<div
 					key={`pet-${index}`}
-					className="absolute bg-green-500 rounded-full"
-					style={{ left: pet.x - 5, top: pet.y - 5, width: 10, height: 10 }}
-				/>
+					className="absolute"
+					style={{
+						left: pet.x - 30,
+						top: pet.y - 30,
+						width: 60,
+						height: 60,
+					}}
+				>
+					{pet.type === "cat" ? (
+						<CatIcon direction={pet.direction} />
+					) : (
+						<DogIcon direction={pet.direction} />
+					)}
+				</div>
 			))}
 			{/* Bad Guys */}
 			{gameEntities.badGuys.map((badGuy, index) => (
 				<div
 					key={`badguy-${index}`}
-					className="absolute bg-red-500 rounded-full"
+					className="absolute"
 					style={{
-						left: badGuy.x - 7,
-						top: badGuy.y - 7,
-						width: 14,
-						height: 14,
+						left: badGuy.x - 30,
+						top: badGuy.y - 30,
+						width: 60,
+						height: 60,
 					}}
-				/>
+				>
+					<BadGuyIcon direction={badGuy.direction} />
+				</div>
 			))}
 		</div>
 	);

@@ -1,3 +1,8 @@
+# This was just for fun ##
+This was created in a few hours following the presedential debate in the 2024 US election. Please don't read anything into it!
+
+## Here's how you can run it
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

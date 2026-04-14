@@ -24,8 +24,8 @@ export default function MainCharacterIcon({
 			<Image
 				src={donald}
 				alt="Main character"
-				layout="fill"
-				objectFit="contain"
+				fill
+				style={{ objectFit: "contain" }}
 				priority
 			/>
 		</div>

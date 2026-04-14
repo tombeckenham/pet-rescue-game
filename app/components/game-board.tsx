@@ -12,7 +12,10 @@ import ClosingScreen from "./closing-screen";
 
 export default function GameBoard() {
 	const [score, setScore] = useState(0);
-	const [character, setCharacter] = useState<Character>({ x: 0, y: 0 });
+	const [character, setCharacter] = useState<Character>(() => {
+		if (typeof window === "undefined") return { x: 0, y: 0 };
+		return { x: window.innerWidth / 2, y: window.innerHeight / 2 - 30 };
+	});
 	const [gameState, setGameState] = useState<
 		"opening" | "playing" | "gameOver"
 	>("opening");
@@ -25,30 +28,34 @@ export default function GameBoard() {
 	});
 	const gameAreaRef = useRef<HTMLDivElement>(null);
 	const lastTimeRef = useRef<number>(0);
-	const animationFrameRef = useRef<number>();
+	const animationFrameRef = useRef<number | undefined>(undefined);
+	const gameLoopRef = useRef<((currentTime: number) => void) | null>(null);
 
-	const [gameWidth, setGameWidth] = useState(0);
-	const [gameHeight, setGameHeight] = useState(0);
-	const [wallY, setWallY] = useState(0);
-	const [gateWidth, setGateWidth] = useState(0);
-	const [gateX, setGateX] = useState(0);
+	const [gameWidth, setGameWidth] = useState(() =>
+		typeof window !== "undefined" ? window.innerWidth : 0
+	);
+	const [gameHeight, setGameHeight] = useState(() =>
+		typeof window !== "undefined" ? window.innerHeight : 0
+	);
+	const [wallY, setWallY] = useState(() =>
+		typeof window !== "undefined" ? window.innerHeight * 0.75 : 0
+	);
+	const [gateWidth, setGateWidth] = useState(() =>
+		typeof window !== "undefined"
+			? Math.min(100, window.innerWidth * 0.1)
+			: 0
+	);
+	const [gateX, setGateX] = useState(() => {
+		if (typeof window === "undefined") return 0;
+		const gw = Math.min(100, window.innerWidth * 0.1);
+		return (window.innerWidth - gw) / 2;
+	});
 
 	const [characterDirection, setCharacterDirection] = useState<
 		"left" | "right"
 	>("right");
 
 	useEffect(() => {
-		// Initialize state values that depend on window
-		setGameWidth(window.innerWidth);
-		setGameHeight(window.innerHeight);
-		setWallY(window.innerHeight * 0.75);
-		setGateWidth(Math.min(100, window.innerWidth * 0.1));
-		setGateX((window.innerWidth - Math.min(100, window.innerWidth * 0.1)) / 2);
-		setCharacter({
-			x: window.innerWidth / 2,
-			y: window.innerHeight / 2 - 30,
-		});
-
 		const handleResize = () => {
 			setGameWidth(window.innerWidth);
 			setGameHeight(window.innerHeight);
@@ -59,7 +66,6 @@ export default function GameBoard() {
 			);
 		};
 
-		handleResize();
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
@@ -353,10 +359,14 @@ export default function GameBoard() {
 				return { pets: remainingPets, badGuys: updatedBadGuys };
 			});
 
-			animationFrameRef.current = requestAnimationFrame(gameLoop);
+			animationFrameRef.current = requestAnimationFrame((t) => gameLoopRef.current?.(t));
 		},
 		[character, gameWidth, gameHeight, wallY, gateX, gateWidth]
 	);
+
+	useEffect(() => {
+		gameLoopRef.current = gameLoop;
+	}, [gameLoop]);
 
 	useEffect(() => {
 		if (gameState !== "playing") return;
